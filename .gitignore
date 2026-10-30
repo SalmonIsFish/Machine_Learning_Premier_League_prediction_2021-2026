@@ -1,0 +1,15 @@
+# Jupyter / Python
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+.venv/
+
+# Excel temp/lock files (created while a spreadsheet is open)
+~$*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backups
+*_backup_before_fix.ipynb
