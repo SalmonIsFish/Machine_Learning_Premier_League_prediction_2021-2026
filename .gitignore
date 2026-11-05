@@ -11,5 +11,8 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Your personal prediction-game results (notebooks 04-06)
+game/
+
 # Backups
 *_backup_before_fix.ipynb
