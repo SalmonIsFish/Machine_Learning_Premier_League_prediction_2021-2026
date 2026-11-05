@@ -61,6 +61,33 @@ Your results are saved in `game/` (not committed to git). Each notebook ends wit
 
 The shared code (data loading, features, Elo, models, squad rules) lives in `src/pl.py`.
 
+## Play in the browser
+
+The same games are also a React web app (`web/`). You can drag players onto a pitch for fantasy, use +/− buttons
+for scores, and pick awards from a search list. The leaderboard is saved in your browser.
+
+The seasons are finished, so the machine's picks never change. `scripts/export_web_data.py` computes them once
+with the models above and writes JSON files to `web/public/data/`. The site is fully static (no Python server),
+so it can be hosted for free on Vercel. Results are kept in separate `*.reveal.json` files that are only
+downloaded when you press Reveal.
+
+Run it locally (needs [Node.js](https://nodejs.org/)):
+
+```
+cd web
+npm install
+npm run dev
+```
+
+Then open http://localhost:5173.
+
+- `npm test`: checks that the JavaScript scoring and squad rules give the same answers as `src/pl.py`
+- `npm run build`: the production build in `web/dist/`
+- `python scripts/export_web_data.py`: run this again after changing a model (takes about 3 minutes)
+
+**Deploy to Vercel:** import the GitHub repo in Vercel and set **Root Directory** to `web`. The build settings
+come from `web/vercel.json`.
+
 ## Project structure
 
 ```
@@ -78,6 +105,8 @@ Machine_Learning/
 │   ├── 05_fantasy.ipynb                            # prediction game: fantasy team
 │   └── 06_awards.ipynb                             # prediction game: awards
 ├── src/pl.py                                       # shared code for notebooks 03-06
+├── scripts/export_web_data.py                      # writes the machine's predictions as JSON for the web app
+├── web/                                            # React web app (Vite); web/public/data = exported JSON
 ├── game/                                           # your saved game results (created when you play)
 ├── requirements.txt
 └── README.md
