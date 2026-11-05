@@ -344,6 +344,12 @@ def load_fpl_season(season):
         "Goals_Conceded": gw["goals_conceded"],
         "Saves": gw["saves"],
         "Bonus": gw["bonus"],
+        "Yellow_Cards": gw["yellow_cards"],
+        "Red_Cards": gw["red_cards"],
+        "Pen_Saved": gw["penalties_saved"],
+        "Pen_Missed": gw["penalties_missed"],
+        # defensive contributions (tackles, blocks, ...) only score points from 2025-26
+        "Def_Contrib": gw["defensive_contribution"].fillna(0).astype(int) if "defensive_contribution" in gw else 0,
         "ICT": gw["ict_index"],
         "Points": gw["total_points"],
         "Price": gw["value"] / 10,
@@ -515,12 +521,12 @@ def best_xi(squad, col="Pred"):
 FORMATIONS = [(d, m, f) for d in range(3, 6) for m in range(2, 6) for f in range(1, 4) if d + m + f == 10]
 
 
-def _greedy_xi(pool, formation, budget, col):
+def _greedy_xi(pool, formation, budget, col, clubs):
     """Best predicted starters for one formation, always keeping enough money for the open slots."""
     need = {"GK": 1, "DEF": formation[0], "MID": formation[1], "FWD": formation[2]}
     cheapest = pool.groupby("Position")["Price"].apply(lambda p: sorted(p))
     reserve = lambda nd: sum(sum(cheapest[pos][:n]) for pos, n in nd.items())
-    xi, clubs, spent = [], {}, 0.0
+    xi, clubs, spent = [], dict(clubs), 0.0
     for r in pool.itertuples():
         if need[r.Position] == 0 or clubs.get(r.Team, 0) >= MAX_PER_CLUB:
             continue
@@ -553,27 +559,30 @@ def _greedy_xi(pool, formation, budget, col):
 def machine_squad(pool, col="Pred"):
     """The machine's 15-man squad.
 
-    For every formation: pick the starting XI greedily by predicted points while keeping money
-    for the cheapest possible bench, then fill the bench with the cheapest players.
+    For every formation: first choose the cheapest possible bench (respecting the club limit), then pick
+    the starting XI greedily by predicted points with the money that is left.
     The formation whose XI (plus captain bonus) has the highest predicted total wins.
     """
     pool = pool.drop_duplicates("Player_ID").sort_values(col, ascending=False)
+    by_price = pool.sort_values(["Price", col], ascending=[True, False])
     best, best_score = None, -np.inf
     for formation in FORMATIONS:
         bench_need = {"GK": 1, "DEF": 5 - formation[0], "MID": 5 - formation[1], "FWD": 3 - formation[2]}
-        by_price = pool.sort_values("Price")
-        bench_cost = sum(by_price[by_price["Position"] == p]["Price"].head(n).sum() for p, n in bench_need.items())
-        xi, clubs, spent = _greedy_xi(pool, formation, BUDGET - bench_cost, col)
-        if len(xi) < 11:
-            continue
-        squad = [r.Player_ID for r in xi]
-        for r in by_price.itertuples():                       # cheapest bench that respects the club limit
-            if bench_need[r.Position] > 0 and r.Player_ID not in squad and clubs.get(r.Team, 0) < MAX_PER_CLUB:
-                squad.append(r.Player_ID)
+        bench, clubs, bench_cost = [], {}, 0.0
+        for r in by_price.itertuples():
+            if bench_need[r.Position] > 0 and clubs.get(r.Team, 0) < MAX_PER_CLUB:
+                bench.append(r.Player_ID)
                 bench_need[r.Position] -= 1
                 clubs[r.Team] = clubs.get(r.Team, 0) + 1
-                spent += r.Price
-        if len(squad) != 15 or spent > BUDGET + 1e-9:
+                bench_cost += r.Price
+        if any(bench_need.values()):
+            continue
+        starters = pool[~pool["Player_ID"].isin(bench)]
+        xi, clubs, spent = _greedy_xi(starters, formation, BUDGET - bench_cost, col, clubs)
+        if len(xi) < 11:
+            continue
+        squad = [r.Player_ID for r in xi] + bench
+        if spent + bench_cost > BUDGET + 1e-9:
             continue
         preds = [getattr(r, col) for r in xi]
         score = sum(preds) + max(preds)

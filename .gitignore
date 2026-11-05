@@ -14,5 +14,11 @@ Thumbs.db
 # Your personal prediction-game results (notebooks 04-06)
 game/
 
+# Web app build output and dependencies
+web/node_modules/
+web/dist/
+.vercel/
+web/.vercel/
+
 # Backups
 *_backup_before_fix.ipynb
