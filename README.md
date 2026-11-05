@@ -3,6 +3,8 @@
 A beginner machine learning project that predicts Premier League match results (home win / draw / away win)
 and the number of goals each team scores, using five seasons of data (2021-22 to 2025-26).
 
+🌐 https://machine-learning-premier-league-pre.vercel.app
+
 ## Results
 
 Trained on 2021-22 to 2024-25 and tested on the unseen 2025-26 season (375 matches).
