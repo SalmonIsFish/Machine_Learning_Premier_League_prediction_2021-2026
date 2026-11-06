@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { KITS } from "./kits.js";
 import { matchStats, pointsBreakdown, scorePoints, teamPoints, validateSquad } from "./rules.js";
 
 // Answers computed by src/pl.py (written by scripts/export_web_data.py)
@@ -11,6 +12,13 @@ describe("score predictor", () => {
     for (const [ph, pa, ah, aa, expected] of cases.score) {
       expect(scorePoints(ph, pa, ah, aa), `${ph}-${pa} vs ${ah}-${aa}`).toBe(expected);
     }
+  });
+});
+
+describe("shirts", () => {
+  it("every club in the data has a kit", () => {
+    const missing = Object.keys(read("index.json").clubs).filter((club) => !KITS[club]);
+    expect(missing).toEqual([]);
   });
 });
 
